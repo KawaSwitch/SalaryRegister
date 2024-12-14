@@ -3,12 +3,13 @@ from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
+from salary import Salary
 import config
 
 
 # MoneyForwardへの給与情報アップロードを行う
 class Uploader:
-    def __init__(self, salary):
+    def __init__(self, salary: Salary):
         self.salary = salary
         self.email = config.data.getMoneyForwardId()
         self.pw = config.data.getMoneyForwardPassword()
@@ -37,7 +38,7 @@ class Uploader:
         date = input("MoneyForwardへの給与登録を行います。登録日を入力してください: ")
         if self.salary.setDate(date):
             ans = input(
-                f"{self.salary.getPayday()}を給料日として登録します。よろしいですか。(Y/n)"
+                f"{self.salary.getPayday()}を給料日として登録します。よろしいですか。(Y/n): "
             )
             if ans in ["", "Y"]:
                 return True

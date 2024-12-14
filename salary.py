@@ -31,10 +31,11 @@ class Salary:
     # True:設定成功 / False:あり得ない日付が設定された場合
     def setDate(self, date) -> bool:
         try:
-            datetime.strptime(f"{self.year}{self.month}{date}", "%Y%m%d")
+            datetime.strptime(f"{self.year}-{self.month}-{date}", "%Y-%m-%d")
             self.date = date
             return True
-        except Exception:
+        except Exception as e:
+            Logger.logError(e)
             return False
 
     # 給料日を取得する(例:2024/11/25)

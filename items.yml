@@ -1,0 +1,31 @@
+deduction:
+  - name: 控除合計
+    category: 収入
+    subcategory: 給与
+  - name: 所得税
+    category: 税・社会保障
+    subcategory: 所得税・住民税
+  - name: 住民税
+    category: 税・社会保障
+    subcategory: 所得税・住民税
+  - name: 健康保険料
+    category: 税・社会保障
+    subcategory: 健康保険
+  - name: 介護保険料
+    category: 税・社会保障
+    subcategory: 介護保険料
+  - name: 厚生年金保険料
+    category: 税・社会保障
+    subcategory: 年金保険料
+  - name: 雇用保険料
+    category: 税・社会保障
+    subcategory: 雇用保険料
+  - name: 労働組合費
+    category: 税・社会保障
+    subcategory: 諸会費
+  - name: 給食費
+    category: 食費
+    subcategory: 食費
+  - name: 加入者掛金額
+    category: 税・社会保障
+    subcategory: 年金保険料

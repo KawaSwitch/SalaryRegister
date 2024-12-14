@@ -15,6 +15,11 @@ ex) I want to adapt the style of the header.
 Describe the purpose of this issue
 ex) To style it.
 
+## Breakdown
+Break down and explain what needs to be done in detail.
+- XXXX
+- XXXX
+
 ## Task
 Break down and manage your tasks.
 - [ ] XXXX

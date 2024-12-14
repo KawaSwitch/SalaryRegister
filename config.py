@@ -1,6 +1,7 @@
 import configparser
 import os
 from logger import Logger
+from distutils.util import strtobool
 
 
 # 設定ファイル読み込み
@@ -40,6 +41,11 @@ class Config:
     # 従業員番号を取得します
     def getEmployeeNumber(self):
         return self.config[Config.DEFAULT]["EmployeeNumber"]
+
+    # ヘッドレスモードで起動するかを取得します
+    def isHeadlessMode(self):
+        isHeadless = self.config[Config.DEFAULT]["UseHeadlessMode"]
+        return strtobool(isHeadless.upper())
 
 
 data = Config()

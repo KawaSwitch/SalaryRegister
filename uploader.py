@@ -57,15 +57,9 @@ class Uploader:
             maxWait = 10
             options = webdriver.ChromeOptions()
 
-            # ヘッドレスモード(画面非表示)設定
-            # ヘッドレスモード対策の回避用にUAオプションを追加
-            # 参考:Stack Overflow - How to access a site via a headless driver
-            # without being denied permission
-            # URL:https://stackoverflow.com/questions/54432980/how-to-access-a-site-via-a-headless-driver-without-being-denied-permission
-            options.add_argument("--headless")
-            user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-            user_agent += "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36"
-            options.add_argument("user-agent={0}".format(user_agent))
+            # 画面表示設定
+            if config.data.isHeadlessMode():
+                options = self.addHeadlessSettings(options)
 
             self.driver = webdriver.Chrome(options=options)
             self.driver.implicitly_wait(maxWait)
@@ -77,6 +71,20 @@ class Uploader:
             raise Exception("WebDriverの初期化に失敗しました。")
 
         Logger.logFine("WebDriverの初期化に成功しました。")
+
+    # ヘッドレスモード(画面非表示)の設定を追加する
+    def addHeadlessSettings(self, options):
+        # ヘッドレスモード対策の回避用にUAオプションを追加
+        # 参考:Stack Overflow - How to access a site via a headless driver
+        # without being denied permission
+        # URL:https://stackoverflow.com/questions/54432980/how-to-access-a-site-via-a-headless-driver-without-being-denied-permission
+        options.add_argument("--headless")
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        user_agent += (
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36"
+        )
+        options.add_argument("user-agent={0}".format(user_agent))
+        return options
 
     # Webページへのアクセスを行います
     def access(self):

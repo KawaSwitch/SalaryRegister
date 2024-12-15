@@ -1,0 +1,58 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Salary Register Debugger: OK-1",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/upload.py",
+            "console": "integratedTerminal",
+            "args": [
+                "2024",
+                "10",
+            ],
+            "cwd": "${workspaceFolder}/src"
+        },
+        {
+            "name": "Salary Register Debugger: OK-2",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/upload.py",
+            "console": "integratedTerminal",
+            "args": [
+                "2024",
+                "12",
+                "-b",
+            ],
+            "cwd": "${workspaceFolder}/src"
+        },
+        {
+            "name": "Salary Register Debugger: NG-1",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/upload.py",
+            "console": "integratedTerminal",
+            "args": [
+                "gg",
+                "guys",
+            ],
+            "cwd": "${workspaceFolder}/src"
+        },
+        {
+            "name": "Salary Register Debugger: NG-2",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/upload.py",
+            "console": "integratedTerminal",
+            "args": [
+                "2024",
+                "10",
+                "24",
+            ],
+            "cwd": "${workspaceFolder}/src"
+        },
+    ]
+}

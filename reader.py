@@ -24,7 +24,7 @@ class SalaryReader:
         try:
             y = f"{self.year}"
             m = f"{self.month:0>2}"
-            k = "_kyuyo_" if self.kind == SalaryKind.NORMAL else "_syoyo"
+            k = "_kyuyo_" if self.kind == SalaryKind.NORMAL else "_syoyo_"
             return y + m + k + str(self.number) + ".pdf"
         except Exception:
             return None

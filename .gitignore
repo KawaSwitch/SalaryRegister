@@ -54,8 +54,16 @@ python_files/tests/*/.data/.coverage*
 python_files/tests/*/.data/*/.coverage*
 src/testTestingRootWkspc/coverageWorkspace/.coverage
 # repo specific
-.vscode/
 samples/
 salaryData/
 driver/
 userdata/*.ini
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+!default.code-workspace
+.devcontainer/devcontainer.json
+.devcontainer/docker-compose.override.yml

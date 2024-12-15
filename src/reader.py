@@ -1,3 +1,4 @@
+import os
 import yaml
 import pypdfium2 as pdfium
 from logger import Logger
@@ -14,10 +15,11 @@ class SalaryReader:
         self.number = number
         self.kind = kind
         self.pw = config.data.getPdfPassword()
-        self.dir = "./userdata/salaryData/"
 
-        # 読み出し項目定義
-        self.itemDefFile = "items.yml"
+        # 各パス設定
+        userdataDir = "../userdata"
+        self.itemsFile = os.path.join(userdataDir, "items.yml")
+        self.salaryDir = os.path.join(userdataDir, "salaryData")
 
     # 読み出し元となる給与明細のPDFファイル名を作成する
     def getPdfFileName(self) -> str:
@@ -39,7 +41,7 @@ class SalaryReader:
             raise FileExistsError("読み出し元PDF名が生成できませんでした。")
         else:
             # 読み出し対象の項目リストをロード
-            with open(self.itemDefFile, "r") as yml:
+            with open(self.itemsFile, "r") as yml:
                 itemDefs = yaml.safe_load(yml)
 
             # 給与明細から該当する控除項目を取得
@@ -82,7 +84,7 @@ class SalaryReader:
     # 給与明細PDFをテキストデータへ変換
     def convertPdf2Text(self, filename) -> list[str]:
         try:
-            pdf = pdfium.PdfDocument(self.dir + filename, self.pw)
+            pdf = pdfium.PdfDocument(os.path.join(self.salaryDir, filename), self.pw)
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"{filename}が見つかりません。ファイルか指定年月日を修正してください。"

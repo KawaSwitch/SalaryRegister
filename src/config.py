@@ -10,7 +10,7 @@ class Config:
     DEFAULT = "DEFAULT"
 
     def __init__(self):
-        userdataDir = "userdata"
+        userdataDir = "../userdata"
         configFileName = "config.ini"
         self.config = configparser.ConfigParser()
 

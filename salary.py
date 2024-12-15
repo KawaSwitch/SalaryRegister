@@ -23,8 +23,7 @@ class Salary:
     def showDeductionInfo(self):
         Logger.logInfo("--- 登録する控除項目一覧 ---")
         for item in self.deductionItems:
-            if item.amount != 0:
-                Logger.logInfo(item)
+            Logger.logInfo(item)
         Logger.logInfo("--------- end ----------")
 
     # 給料日を日にちを設定する

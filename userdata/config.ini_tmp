@@ -1,0 +1,7 @@
+[DEFAULT]
+PdfPassword = 
+MfMailAddress = 
+MfPassword = 
+EmployeeNumber = 
+
+UseHeadlessMode = true

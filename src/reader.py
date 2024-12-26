@@ -75,7 +75,7 @@ class SalaryReader:
     def createItem(self, itemDef, lines, idx) -> Item:
         # 金額
         amount = lines[(idx + 1) % len(lines)].replace(",", "")
-        amount = amount if amount.isdigit() else 0
+        amount = amount if amount.lstrip("-").isdigit() else 0
         # 登録するカテゴリ
         category = itemDef["category"]
         category_sub = itemDef["subcategory"]

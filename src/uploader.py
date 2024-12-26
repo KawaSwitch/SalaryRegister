@@ -128,27 +128,41 @@ class Uploader:
         self.driver.find_element(By.LINK_TEXT, "収入・振替を入力する").click()
 
         # 控除合計->控除項目の順に登録
-        self.registerDeductionIncome()
-        self.registerDeductionExpense()
+        self.registerDeductionSumAsIncome()
+        self.registerDeductionItems()
 
         Logger.logInfo("すべての控除項目の登録が完了しました。")
         self.driver.quit()
 
     # 控除項目の合計を収入として登録します
-    def registerDeductionIncome(self):
+    def registerDeductionSumAsIncome(self):
         incomeData = None
         for item in self.salary.deductionItems:
             if item.name == "控除合計":
                 incomeData = item
 
-        # 収入の入力タブへ移動(デフォルトは支出タブのため)
-        self.driver.find_element(By.CLASS_NAME, "plus-payment").click()
         # 控除データ登録
+        self.gotoIncomeTab()
         self.registerInternal(incomeData)
 
+    # 支出登録タブへ移動する
+    # 前提:家計簿入力ダイアログが開いている状態であること
+    def gotoPaymentTab(self):
+        self.driver.find_element(By.CLASS_NAME, "minus-payment").click()
+
+    # 収入登録タブへ移動する
+    # 前提:家計簿入力ダイアログが開いている状態であること
+    def gotoIncomeTab(self):
+        self.driver.find_element(By.CLASS_NAME, "plus-payment").click()
+
     # すべての控除項目の登録を行います
-    def registerDeductionExpense(self):
+    def registerDeductionItems(self):
         for item in [x for x in self.salary.deductionItems if x.name != "控除合計"]:
+            # 控除データが負の値であれば収入として登録する
+            # 収入入力後は必ず支出タブへ遷移するため明示的な指示は不要
+            if item.amount < 0:
+                self.gotoIncomeTab()
+
             # 控除データ登録
             self.registerInternal(item)
 

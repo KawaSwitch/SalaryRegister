@@ -29,3 +29,10 @@ deduction:
   - name: 加入者掛金額
     category: 税・社会保障
     subcategory: 年金保険料
+  - name: 社員雑費
+    category: 税・社会保障
+    subcategory: 諸会費
+  - name: 年調過不足額
+    category: 収入
+    subcategory: 返金
+  

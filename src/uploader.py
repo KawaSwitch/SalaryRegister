@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 from salary import Salary
 import config
+import pyotp
 
 
 # MoneyForwardへの給与情報アップロードを行う
@@ -13,6 +14,7 @@ class Uploader:
         self.salary = salary
         self.email = config.data.getMoneyForwardId()
         self.pw = config.data.getMoneyForwardPassword()
+        self.tfaid = config.data.getTfaId()
         self.driver = None
         self.actions = None
 
@@ -120,6 +122,12 @@ class Uploader:
         elem.send_keys(self.pw)
         elem.submit()
         Logger.logFine("パスワード認証に成功しました。")
+
+        # 2段階認証
+        elem = self.driver.find_element(By.ID, "otp_attempt")
+        topt = pyotp.TOTP(self.tfaid)
+        elem.send_keys(topt.now())
+        elem.submit()
 
         Logger.logInfo("ログインが完了しました。")
 

@@ -51,5 +51,9 @@ class Config:
     def getDefaultDate(self):
         return self.config[Config.DEFAULT]["DefaultDate"]
 
+    # 2段階認証の生成用IDを取得します
+    def getTfaId(self):
+        return self.config[Config.DEFAULT]["TfaId"]
+
 
 data = Config()

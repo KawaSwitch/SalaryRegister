@@ -3,6 +3,7 @@ PdfPassword =
 MfMailAddress = 
 MfPassword = 
 EmployeeNumber = 
+TfaId = 
 
 UseHeadlessMode = true
 DefaultDate = 25

@@ -35,7 +35,10 @@ class Uploader:
 
     # 給与登録の確認を行います
     def confirm(self) -> bool:
-        date = input("MoneyForwardへの給与登録を行います。登録日を入力してください: ")
+        defaultDate = config.data.getDefaultDate()
+        text = "MoneyForwardへの給与登録を行います。登録日を入力してください。"
+        date = input(f"{text}({defaultDate}日): ") or defaultDate
+
         if self.salary.setDate(date):
             ans = input(
                 f"{self.salary.getPayday()}を給料日として登録します。よろしいですか。(Y/n): "

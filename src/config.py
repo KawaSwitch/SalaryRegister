@@ -47,5 +47,9 @@ class Config:
         isHeadless = self.config[Config.DEFAULT]["UseHeadlessMode"]
         return strtobool(isHeadless.upper())
 
+    # 給与登録日としてデフォルトで表示する日付を取得します
+    def getDefaultDate(self):
+        return self.config[Config.DEFAULT]["DefaultDate"]
+
 
 data = Config()

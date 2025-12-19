@@ -44,6 +44,12 @@ pydevd*.log
 nodeLanguageServer/**
 nodeLanguageServer.*/**
 dist/**
+
+# pytest coverage
+.coverage
+.coverage.*
+htmlcov/
+
 # translation files
 *.xlf
 package.nls.*.json

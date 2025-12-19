@@ -1,39 +1,55 @@
-# 前景色管理
+from typing import Final
+
+
 class FColors:
-    HEADER = "\033[95m"
-    OKBLUE = "\033[94m"
-    OKCYAN = "\033[96m"
-    OKGREEN = "\033[92m"
-    WARNING = "\033[93m"
-    FAIL = "\033[91m"
-    ENDC = "\033[0m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
+    """前景色管理クラス（ANSIエスケープシーケンス）"""
+    HEADER: Final[str] = "\033[95m"
+    OKBLUE: Final[str] = "\033[94m"
+    OKCYAN: Final[str] = "\033[96m"
+    OKGREEN: Final[str] = "\033[92m"
+    WARNING: Final[str] = "\033[93m"
+    FAIL: Final[str] = "\033[91m"
+    ENDC: Final[str] = "\033[0m"
+    BOLD: Final[str] = "\033[1m"
+    UNDERLINE: Final[str] = "\033[4m"
 
 
-# ロガー処理
 class Logger:
-    logLevel = 1
+    """ログ出力用クラス"""
+    log_level: int = 1
 
     @classmethod
-    def logFine(cls, text):
-        Logger.__logPrint(f"[fine] {text}", FColors.OKGREEN)
+    def logFine(cls, text: str) -> None:
+        """詳細レベルのログを出力"""
+        cls._log_print(f"[fine] {text}", FColors.OKGREEN)
 
     @classmethod
-    def logInfo(cls, text):
-        Logger.__logPrint(f"[info] {text}", FColors.OKCYAN)
-
-    def logDebug(cls, text):
-        Logger.__logPrint(f"[info] {text}")
+    def logInfo(cls, text: str) -> None:
+        """情報レベルのログを出力"""
+        cls._log_print(f"[info] {text}", FColors.OKCYAN)
 
     @classmethod
-    def logWarning(cls, text):
-        Logger.__logPrint(f"[WARNING] {text}", FColors.WARNING)
+    def logDebug(cls, text: str) -> None:
+        """デバッグレベルのログを出力"""
+        cls._log_print(f"[debug] {text}")
 
     @classmethod
-    def logError(cls, text):
-        Logger.__logPrint(f"[ERROR] {text}", FColors.FAIL)
+    def logWarning(cls, text: str) -> None:
+        """警告レベルのログを出力"""
+        cls._log_print(f"[WARNING] {text}", FColors.WARNING)
 
     @classmethod
-    def __logPrint(cls, text, color=FColors.ENDC):
+    def logError(cls, text: str) -> None:
+        """エラーレベルのログを出力"""
+        cls._log_print(f"[ERROR] {text}", FColors.FAIL)
+
+    @classmethod
+    def _log_print(cls, text: str, color: str = FColors.ENDC) -> None:
+        """
+        内部用: 色付きログ出力
+        
+        Args:
+            text: 出力するテキスト
+            color: 前景色のANSIエスケープシーケンス
+        """
         print(f"{color}{text}{FColors.ENDC}")

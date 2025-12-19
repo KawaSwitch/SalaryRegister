@@ -3,9 +3,12 @@ from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from salary import Salary
 import config
 import pyotp
+import time
 
 
 # MoneyForwardへの給与情報アップロードを行う
@@ -60,7 +63,7 @@ class Uploader:
     def init(self):
         Logger.logFine("WebDriverの初期化を行います。")
         try:
-            maxWait = 10
+            maxWait = 5
             options = webdriver.ChromeOptions()
 
             # 画面表示設定
@@ -102,32 +105,34 @@ class Uploader:
     # MoneyForwardMeサービスへのログインを行います
     def login(self):
         Logger.logInfo("ログインしています。")
+        wait = WebDriverWait(self.driver, 5)
 
         # 初期ページ > ログイン遷移
-        mainMenu = self.driver.find_element(
-            By.XPATH,
-            '//*[@id="before-login-corporate"]/header/div[1]/div[2]/nav/ul/li[1]/p',
-        )
+        mainMenu = wait.until(EC.presence_of_element_located(
+            (By.XPATH, '//*[@id="before-login-corporate"]/header/div[1]/div[2]/nav/ul/li[1]/p')
+        ))
         self.actions.move_to_element(mainMenu).perform()
-        self.driver.find_element(By.LINK_TEXT, "ログイン").click()
+        login_link = wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "ログイン")))
+        login_link.click()
 
         # ユーザ名
-        elem = self.driver.find_element(By.ID, "mfid_user[email]")
+        elem = wait.until(EC.presence_of_element_located((By.ID, "mfid_user[email]")))
         elem.send_keys(self.email)
         elem.submit()
         Logger.logFine("ユーザID認証に成功しました。")
 
         # パスワード
-        elem = self.driver.find_element(By.ID, "mfid_user[password]")
+        elem = wait.until(EC.presence_of_element_located((By.ID, "mfid_user[password]")))
         elem.send_keys(self.pw)
         elem.submit()
         Logger.logFine("パスワード認証に成功しました。")
 
         # 2段階認証
-        elem = self.driver.find_element(By.ID, "otp_attempt")
+        elem = wait.until(EC.presence_of_element_located((By.ID, "otp_attempt")))
         topt = pyotp.TOTP(self.tfaid)
         elem.send_keys(topt.now())
         elem.submit()
+        time.sleep(1)
 
         Logger.logInfo("ログインが完了しました。")
 
@@ -136,7 +141,29 @@ class Uploader:
         Logger.logInfo("控除項目の登録を行います。")
 
         # 給与登録ページへ遷移
-        self.driver.find_element(By.LINK_TEXT, "収入・振替を入力する").click()
+        time.sleep(0.5)
+        
+        # モーダル閉じる（高速化）
+        try:
+            close_buttons = self.driver.find_elements(By.XPATH, "//button[contains(@class, 'close') or contains(@aria-label, 'Close')]")
+            if close_buttons and close_buttons[0].is_displayed():
+                close_buttons[0].click()
+                time.sleep(0.3)
+        except:
+            pass
+        
+        try:
+            wait = WebDriverWait(self.driver, 5)
+            # 直接JavaScriptでクリック（最速）
+            input_button = wait.until(EC.presence_of_element_located((By.LINK_TEXT, "収入・振替を入力する")))
+            self.driver.execute_script("arguments[0].click();", input_button)
+            time.sleep(0.5)
+        except Exception as e:
+            Logger.logError(f"入力ボタンが見つかりません: {e}")
+            with open("../userdata/debug_page.html", "w", encoding="utf-8") as f:
+                f.write(self.driver.page_source)
+            Logger.logInfo("ページのHTMLを debug_page.html に保存しました。")
+            raise
 
         # 控除合計->控除項目の順に登録
         self.registerDeductionSumAsIncome()
@@ -152,68 +179,119 @@ class Uploader:
             if item.name == "控除合計":
                 incomeData = item
 
-        # 控除データ登録
-        self.gotoIncomeTab()
-        self.registerInternal(incomeData)
+        # 控除データ登録（収入として）
+        self.registerInternal(incomeData, is_income=True)
 
     # 支出登録タブへ移動する
     # 前提:家計簿入力ダイアログが開いている状態であること
     def gotoPaymentTab(self):
-        self.driver.find_element(By.CLASS_NAME, "minus-payment").click()
+        wait = WebDriverWait(self.driver, 10)
+        time.sleep(0.5)
+        payment_btn = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "minus-payment")))
+        payment_btn.click()
+        time.sleep(0.5)
 
     # 収入登録タブへ移動する
     # 前提:家計簿入力ダイアログが開いている状態であること
     def gotoIncomeTab(self):
-        self.driver.find_element(By.CLASS_NAME, "plus-payment").click()
+        wait = WebDriverWait(self.driver, 10)
+        time.sleep(0.5)
+        income_btn = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "plus-payment")))
+        income_btn.click()
+        time.sleep(0.5)
 
     # すべての控除項目の登録を行います
     def registerDeductionItems(self):
         for item in [x for x in self.salary.deductionItems if x.name != "控除合計"]:
             # 控除データが負の値であれば収入として登録する
-            # 収入入力後は必ず支出タブへ遷移するため明示的な指示は不要
-            if item.amount < 0:
-                self.gotoIncomeTab()
-
+            is_income_item = item.amount < 0
             # 控除データ登録
-            self.registerInternal(item)
+            self.registerInternal(item, is_income=is_income_item)
 
     # 共通登録処理を行います
-    def registerInternal(self, item):
-        # 支出・収入金額の出所を'なし'へ
-        elem = self.driver.find_element(By.ID, "user_asset_act_sub_account_id_hash")
-        select = Select(elem)
-        select.select_by_visible_text("なし")
+    def registerInternal(self, item, is_income=False):
+        wait = WebDriverWait(self.driver, 5)
+        
+        try:
+            # 収入/支出の切り替え（シンプルかつ確実に）
+            if is_income:
+                # 収入として登録 - hidden fieldとフォーム両方を設定
+                self.driver.execute_script("""
+                    document.getElementById('user_asset_act_is_income').value = '1';
+                    // 収入フォームに切り替え（存在する場合）
+                    var incomeTab = document.querySelector('a.btn-success, a[href*="income"], .plus-payment');
+                    if (incomeTab) incomeTab.click();
+                """)
+            else:
+                # 支出として登録 - hidden fieldとフォーム両方を設定
+                self.driver.execute_script("""
+                    document.getElementById('user_asset_act_is_income').value = '0';
+                    // 支出フォームに切り替え（存在する場合）
+                    var paymentTab = document.querySelector('a.btn-danger, a[href*="payment"], .minus-payment');
+                    if (paymentTab) paymentTab.click();
+                """)
+            
+            # 支出・収入金額の出所を'なし'へ
+            elem = wait.until(EC.presence_of_element_located((By.ID, "user_asset_act_sub_account_id_hash")))
+            select = Select(elem)
+            select.select_by_visible_text("なし")
 
-        # 金額
-        elem = self.driver.find_element(By.ID, "appendedPrependedInput")
-        elem.send_keys(item.amount)
+            # 金額
+            elem = wait.until(EC.presence_of_element_located((By.ID, "appendedPrependedInput")))
+            elem.clear()
+            elem.send_keys(str(abs(item.amount)))
 
-        # 大項目
-        self.driver.find_element(By.ID, "js-large-category-selected").click()
-        self.driver.find_element(
-            By.XPATH, '//a[text()="' + item.category + '" and @class="l_c_name"]'
-        ).click()
+            # 大項目（高速化）
+            large_category_btn = wait.until(EC.presence_of_element_located((By.ID, "js-large-category-selected")))
+            self.driver.execute_script("arguments[0].click();", large_category_btn)
+            time.sleep(0.2)
+            
+            large_cat_link = wait.until(EC.presence_of_element_located(
+                (By.XPATH, f'//a[text()="{item.category}" and @class="l_c_name"]')
+            ))
+            self.driver.execute_script("arguments[0].click();", large_cat_link)
 
-        # 中項目
-        self.driver.find_element(By.ID, "js-middle-category-selected").click()
-        self.driver.find_element(
-            By.XPATH, '//a[text()="' + item.subcategory + '" and @class="m_c_name"]'
-        ).click()
+            # 中項目（高速化）
+            time.sleep(0.2)
+            middle_category_btn = wait.until(EC.presence_of_element_located((By.ID, "js-middle-category-selected")))
+            self.driver.execute_script("arguments[0].click();", middle_category_btn)
+            time.sleep(0.2)
+            
+            middle_cat_link = wait.until(EC.presence_of_element_located(
+                (By.XPATH, f'//a[text()="{item.subcategory}" and @class="m_c_name"]')
+            ))
+            self.driver.execute_script("arguments[0].click();", middle_cat_link)
+        except Exception as e:
+            Logger.logError(f"カテゴリ選択でエラー: {e}")
+            # デバッグ用にスクリーンショットを保存
+            self.driver.save_screenshot("../userdata/debug_screenshot.png")
+            with open("../userdata/debug_form.html", "w", encoding="utf-8") as f:
+                f.write(self.driver.page_source)
+            Logger.logInfo("スクリーンショットとHTMLをdebugファイルに保存しました。")
+            raise
 
         # 内容
-        elem = self.driver.find_element(By.ID, "js-content-field")
+        elem = wait.until(EC.presence_of_element_located((By.ID, "js-content-field")))
+        elem.clear()
         elem.send_keys(item.name)
 
         # カレンダー(日付)
-        # MEMO: 一旦開いたカレンダーを閉じる方法が分からなかった。
-        # MEMO: 大項目などのクリック時に邪魔になるため最後に選択する。
-        elem = self.driver.find_element(By.ID, "updated-at")
+        elem = wait.until(EC.presence_of_element_located((By.ID, "updated-at")))
         elem.clear()
         elem.send_keys(self.salary.getPayday())
 
+        # 登録直前に収入/支出フィールドを再度確実に設定
+        self.driver.execute_script(
+            f"document.getElementById('user_asset_act_is_income').value = '{'1' if is_income else '0'}';"
+        )
+
         # 登録
+        time.sleep(0.3)
         elem.submit()
-        Logger.logFine(f"{item.name} の登録に成功しました。")
+        Logger.logFine(f"{item.name} ({'収入' if is_income else '支出'}) の登録に成功しました。")
 
         # 続けて入力する
-        self.driver.find_element(By.ID, "confirmation-button").click()
+        time.sleep(0.5)
+        confirm_btn = wait.until(EC.element_to_be_clickable((By.ID, "confirmation-button")))
+        confirm_btn.click()
+        time.sleep(0.3)

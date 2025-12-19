@@ -41,7 +41,7 @@ class SalaryReader:
             raise FileExistsError("読み出し元PDF名が生成できませんでした。")
         else:
             # 読み出し対象の項目リストをロード
-            with open(self.itemsFile, "r") as yml:
+            with open(self.itemsFile, "r", encoding="utf-8") as yml:
                 itemDefs = yaml.safe_load(yml)
 
             # 給与明細から該当する控除項目を取得
@@ -93,5 +93,9 @@ class SalaryReader:
         lines = []
         for page in pdf:
             textpage = page.get_textpage()
-            lines.extend(textpage.get_text_bounded().split())
+            # Get text as bytes and decode with utf-8 to handle Japanese characters
+            text = textpage.get_text_bounded()
+            if isinstance(text, bytes):
+                text = text.decode('utf-8', errors='ignore')
+            lines.extend(text.split())
         return lines

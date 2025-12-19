@@ -58,6 +58,9 @@ samples/
 salaryData/
 driver/
 userdata/*.ini
+# debug files
+userdata/debug_*.html
+userdata/debug_*.png
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json

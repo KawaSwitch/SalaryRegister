@@ -8,7 +8,7 @@ from argument import Arguments
 
 # メインメソッド
 if __name__ == "__main__":
-    isPrintTrace = False
+    isPrintTrace = True
     args = Arguments()
 
     if args.isValid():

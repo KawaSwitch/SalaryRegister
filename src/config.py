@@ -93,4 +93,9 @@ class Config:
         return self.get_tfa_id()
 
 
-data = Config()
+# モジュールレベルで設定を初期化（テスト時にエラーを避けるためtry-except）
+try:
+    data = Config()
+except FileNotFoundError:
+    # テスト環境などで設定ファイルがない場合はNoneにする
+    data = None

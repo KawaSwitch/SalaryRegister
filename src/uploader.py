@@ -39,6 +39,7 @@ class Uploader:
     ID_CONTENT: Final[str] = "js-content-field"
     ID_DATE: Final[str] = "updated-at"
     ID_IS_INCOME: Final[str] = "user_asset_act_is_income"
+    ID_IS_INCOME_MODAL: Final[str] = "user_asset_act_is_income_modal"
     ID_CONFIRMATION_BTN: Final[str] = "confirmation-button"
     
     CLASS_MINUS_PAYMENT: Final[str] = "minus-payment"
@@ -165,12 +166,17 @@ class Uploader:
             without being denied permission
             URL: https://stackoverflow.com/questions/54432980/
         """
-        options.add_argument("--headless")
+        options.add_argument("--headless=new")
         user_agent = (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36"
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
         options.add_argument(f"user-agent={user_agent}")
+        # ヘッドレスモードでの安定性向上のための追加オプション
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-blink-features=AutomationControlled")
         return options
 
     def _access_moneyforward(self) -> None:
@@ -252,13 +258,67 @@ class Uploader:
         """給与入力ページへ遷移する"""
         try:
             wait = WebDriverWait(self.driver, UIConstants.DEFAULT_WAIT_TIMEOUT)
-            input_button = wait.until(
-                EC.presence_of_element_located((By.LINK_TEXT, self.LINK_TEXT_INPUT))
-            )
-            self.driver.execute_script("arguments[0].click();", input_button)
+            
+            # まず /cf ページにアクセス
+            cf_url = "https://moneyforward.com/cf"
+            Logger.logFine(f"/cfページへアクセス: {cf_url}")
+            self.driver.get(cf_url)
             time.sleep(UIConstants.LONG_SLEEP)
+            
+            Logger.logFine(f"現在のURL: {self.driver.current_url}")
+            
+            # 手入力ボタンをクリックしてモーダルを開く
+            modal_opened = False
+            
+            # 方法1: 手入力ボタンをクリック
+            try:
+                manual_input_btn = wait.until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, "button.cf-new-btn.modal-switch"))
+                )
+                # クリック前に少し待機
+                time.sleep(UIConstants.SHORT_SLEEP)
+                self.driver.execute_script("arguments[0].click();", manual_input_btn)
+                time.sleep(UIConstants.LONG_SLEEP)
+                Logger.logFine("手入力ボタンをクリックしました。")
+                
+                # Bootstrap モーダルを明示的に表示
+                self.driver.execute_script("""
+                    if (typeof $ !== 'undefined' && $('#user_asset_act_new').length > 0) {
+                        $('#user_asset_act_new').modal('show');
+                    }
+                """)
+                time.sleep(UIConstants.MEDIUM_SLEEP)
+                modal_opened = True
+            except Exception as e:
+                Logger.logFine(f"手入力ボタンのクリック失敗: {e}")
+            
+            # モーダルフォームの確認（複数のセレクタを試行）
+            form_found = False
+            form_selectors = [
+                (By.ID, "form-user-asset-act"),
+                (By.ID, self.ID_AMOUNT),
+                (By.ID, self.ID_IS_INCOME_MODAL),
+                (By.CSS_SELECTOR, "#user_asset_act_new .modal-body"),
+                (By.CSS_SELECTOR, "form[action*='user_asset_act']"),
+            ]
+            
+            for selector_type, selector_value in form_selectors:
+                try:
+                    elem = wait.until(EC.visibility_of_element_located((selector_type, selector_value)))
+                    form_found = True
+                    Logger.logFine(f"フォーム要素を確認: {selector_value}")
+                    break
+                except Exception:
+                    continue
+            
+            if not form_found:
+                # デバッグ用にHTMLを保存
+                Logger.logError("モーダルフォームが見つかりません。")
+                self._save_debug_html(self.DEBUG_HTML_PATH)
+                raise Exception("モーダルフォームが表示されていません")
+                
         except Exception as e:
-            Logger.logError(f"入力ボタンが見つかりません: {e}")
+            Logger.logError(f"入力ページへの遷移に失敗: {e}")
             self._save_debug_html(self.DEBUG_HTML_PATH)
             Logger.logInfo(f"ページのHTMLを {self.DEBUG_HTML_PATH} に保存しました。")
             raise
@@ -309,30 +369,60 @@ class Uploader:
     
     def _set_income_expense_type(self, is_income: bool) -> None:
         """収入/支出の切り替え"""
-        script = """
-            document.getElementById('{field_id}').value = '{value}';
-            var tab = document.querySelector('{selector}');
-            if (tab) tab.click();
-        """
+        # モーダル用のIDを使用（/cfページのフォーム）
+        field_id = self.ID_IS_INCOME_MODAL
         
+        # まずhidden fieldの値を設定
+        value = '1' if is_income else '0'
+        self.driver.execute_script(
+            f"var elem = document.getElementById('{field_id}'); "
+            f"if (elem) elem.value = '{value}';"
+        )
+        
+        # タブをクリックして切り替え
+        time.sleep(UIConstants.SHORT_SLEEP)
         if is_income:
-            self.driver.execute_script(script.format(
-                field_id=self.ID_IS_INCOME,
-                value='1',
-                selector='a.btn-success, a[href*="income"], .plus-payment'
-            ))
+            # 収入タブをクリック
+            self.driver.execute_script("""
+                var tab = document.querySelector('input.plus-payment');
+                if (tab) {
+                    tab.click();
+                    var label = tab.closest('label');
+                    if (label) label.click();
+                }
+            """)
         else:
-            self.driver.execute_script(script.format(
-                field_id=self.ID_IS_INCOME,
-                value='0',
-                selector='a.btn-danger, a[href*="payment"], .minus-payment'
-            ))
+            # 支出タブをクリック
+            self.driver.execute_script("""
+                var tab = document.querySelector('input.minus-payment');
+                if (tab) {
+                    tab.click();
+                    var label = tab.closest('label');
+                    if (label) label.click();
+                }
+            """)
+        time.sleep(UIConstants.SHORT_SLEEP)
     
     def _set_sub_account(self, wait: WebDriverWait) -> None:
         """支出・収入金額の出所を'なし'へ設定"""
-        elem = wait.until(EC.presence_of_element_located((By.ID, self.ID_SUB_ACCOUNT)))
-        select = Select(elem)
-        select.select_by_visible_text(self.OPTION_NONE)
+        try:
+            elem = wait.until(EC.visibility_of_element_located((By.ID, self.ID_SUB_ACCOUNT)))
+            select = Select(elem)
+            select.select_by_visible_text(self.OPTION_NONE)
+        except Exception as e:
+            # 要素が表示されていない場合はJavaScriptで設定
+            Logger.logFine(f"Selectでの設定失敗、JSで試行: {e}")
+            self.driver.execute_script(f"""
+                var elem = document.getElementById('{self.ID_SUB_ACCOUNT}');
+                if (elem) {{
+                    for (var i = 0; i < elem.options.length; i++) {{
+                        if (elem.options[i].text.trim() === '{self.OPTION_NONE}' || elem.options[i].value === '0') {{
+                            elem.selectedIndex = i;
+                            break;
+                        }}
+                    }}
+                }}
+            """)
     
     def _set_amount(self, wait: WebDriverWait, amount: int) -> None:
         """金額を設定"""
@@ -378,8 +468,12 @@ class Uploader:
     def _confirm_income_expense_field(self, is_income: bool) -> None:
         """登録直前に収入/支出フィールドを再度確実に設定"""
         value = '1' if is_income else '0'
+        # モーダル用IDを優先、なければ通常IDを使用
         self.driver.execute_script(
-            f"document.getElementById('{self.ID_IS_INCOME}').value = '{value}';"
+            f"var elemModal = document.getElementById('{self.ID_IS_INCOME_MODAL}'); "
+            f"var elem = document.getElementById('{self.ID_IS_INCOME}'); "
+            f"if (elemModal) elemModal.value = '{value}'; "
+            f"if (elem) elem.value = '{value}';"
         )
     
     def _submit_and_continue(self, wait: WebDriverWait, item_name: str, is_income: bool) -> None:
